@@ -1,7 +1,15 @@
+using Microsoft.EntityFrameworkCore;
+using _01_Intro_mvc_.data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseSqlServer("Name=SQLServerLocal");
+});
 
 var app = builder.Build();
 
