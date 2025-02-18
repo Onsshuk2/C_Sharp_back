@@ -85,5 +85,56 @@ namespace _01_Intro_mvc_.Controllers
 
             return fileName;
         }
+
+        public IActionResult Update(string? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+            var product = _context.Products.Find(id);
+            if (product == null)
+                return NotFound();
+
+            ViewBag.Categories = _context.Categories.ToList();
+            return View(product);
+
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Update(Product model)
+        {
+            _context.Products.Update(model);
+            _context.SaveChanges();
+
+            return RedirectToAction("Index");
+        }
+        public IActionResult Delete(string? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var product = _context.Products.FirstOrDefault(c => c.Id == id);
+
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            return View(product);
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Delete(Product model)
+        {
+            _context.Products.Remove(model);
+            _context.SaveChanges();
+
+            return RedirectToAction("Index");
+        }
     }
 }
+
