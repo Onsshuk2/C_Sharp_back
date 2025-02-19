@@ -14,8 +14,8 @@ namespace _01_Intro_mvc_.Controllers
 
         public ProductController(AppDbContext context, IWebHostEnvironment environment)
         {
-            _context = context;
-            _environment = environment;
+            
+            _environment = environment;_context = context;
         }
 
         public IActionResult Index()
@@ -49,11 +49,30 @@ namespace _01_Intro_mvc_.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Create([FromForm] CreateProductVM viewModel)
         {
-            string? imagePath = null;
-
-            if (viewModel.File != null)
+            if (!ModelState.IsValid)
             {
-                imagePath = SaveImage(viewModel.File);
+                viewModel.Categories = _context.Categories
+                    .Select(c => new SelectListItem
+                    {
+                        Text = c.Name,
+                        Value = c.Id
+                    });
+
+                return View(viewModel);
+            }
+
+            string? imagePath = SaveImage(viewModel.File);
+            if (imagePath == null)
+            {
+                ModelState.AddModelError("File", "Помилка завантаження зображення");
+                viewModel.Categories = _context.Categories
+                    .Select(c => new SelectListItem
+                    {
+                        Text = c.Name,
+                        Value = c.Id
+                    });
+
+                return View(viewModel);
             }
 
             viewModel.Product.Image = imagePath;
@@ -64,9 +83,15 @@ namespace _01_Intro_mvc_.Controllers
             return RedirectToAction("Index");
         }
 
+
         private string? SaveImage(IFormFile file)
         {
-            var types = file.ContentType.Split("/");
+            if (file == null || file.Length == 0)
+            {
+                return null;
+            }
+
+            var types = file.ContentType.Split('/');
             if (types[0] != "image")
             {
                 return null;
@@ -74,17 +99,22 @@ namespace _01_Intro_mvc_.Controllers
 
             string fileName = $"{Guid.NewGuid()}.{types[1]}";
             string imagesPath = Path.Combine(_environment.WebRootPath, "images", "products");
-            string filePath = Path.Combine(imagesPath, fileName);
-            using (var stream = file.OpenReadStream())
+
+            if (!Directory.Exists(imagesPath))
             {
-                using (var fileStream = System.IO.File.Create(filePath))
-                {
-                    stream.CopyTo(fileStream);
-                }
+                Directory.CreateDirectory(imagesPath);
+            }
+
+            string filePath = Path.Combine(imagesPath, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                file.CopyTo(stream);
             }
 
             return fileName;
         }
+
 
         public IActionResult Update(string? id)
         {
@@ -92,24 +122,74 @@ namespace _01_Intro_mvc_.Controllers
             {
                 return NotFound();
             }
+
             var product = _context.Products.Find(id);
             if (product == null)
                 return NotFound();
 
-            ViewBag.Categories = _context.Categories.ToList();
-            return View(product);
+            var viewModel = new CreateProductVM
+            {
+                Product = product,
+                Categories = _context.Categories.Select(c => new SelectListItem
+                {
+                    Text = c.Name,
+                    Value = c.Id
+                })
+            };
 
+            return View(viewModel);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Update(Product model)
+        public IActionResult Update([FromForm] CreateProductVM viewModel)
         {
-            _context.Products.Update(model);
+            if (!ModelState.IsValid)
+            {
+                viewModel.Categories = _context.Categories
+                    .Select(c => new SelectListItem
+                    {
+                        Text = c.Name,
+                        Value = c.Id
+                    });
+
+                return View(viewModel);
+            }
+
+            var product = _context.Products.Find(viewModel.Product.Id);
+            if (product == null)
+                return NotFound();
+
+            product.Name = viewModel.Product.Name;
+            product.Description = viewModel.Product.Description;
+            product.Price = viewModel.Product.Price;
+            product.Amount = viewModel.Product.Amount;
+            product.CategoryId = viewModel.Product.CategoryId;
+
+            if (viewModel.File != null)
+            {
+                string? imagePath = SaveImage(viewModel.File);
+                if (imagePath == null)
+                {
+                    ModelState.AddModelError("File", "Помилка завантаження зображення");
+                    viewModel.Categories = _context.Categories
+                        .Select(c => new SelectListItem
+                        {
+                            Text = c.Name,
+                            Value = c.Id
+                        });
+
+                    return View(viewModel);
+                }
+                product.Image = imagePath;
+            }
+
+            _context.Products.Update(product);
             _context.SaveChanges();
 
             return RedirectToAction("Index");
         }
+
         public IActionResult Delete(string? id)
         {
             if (id == null)

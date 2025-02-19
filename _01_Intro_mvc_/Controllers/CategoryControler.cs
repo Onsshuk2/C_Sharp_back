@@ -4,14 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace _01_Intro_mvc_.Controllers
 {
-    public class CategoryController : Controller
+    public class CategoryController(AppDbContext context) : Controller
     {
-        private readonly AppDbContext _context;
-
-        public CategoryController(AppDbContext context)
-        {
-            _context = context;
-        }
+        private readonly AppDbContext _context = context;
 
         public IActionResult Index()
         {
@@ -28,13 +23,18 @@ namespace _01_Intro_mvc_.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Create(Category model)
         {
-            model.Id = Guid.NewGuid().ToString();
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
 
+            model.Id = Guid.NewGuid().ToString();
             _context.Categories.Add(model);
             _context.SaveChanges();
 
             return RedirectToAction("Index");
         }
+
         public IActionResult Update(string? id)
         {
             if (id == null)
@@ -56,11 +56,18 @@ namespace _01_Intro_mvc_.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Update(Category model)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(model); 
+            }
+
             _context.Categories.Update(model);
             _context.SaveChanges();
 
             return RedirectToAction("Index");
         }
+
+
         public IActionResult Delete(string? id)
         {
             if (id == null)

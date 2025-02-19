@@ -6,11 +6,11 @@ namespace _01_Intro_mvc_.Models
     {
         [Key]
         public string? Id { get; set; }
-        [Required]
-        [MaxLength(100)]
+
+        [Required(ErrorMessage = "Поле 'Name' є обов'язковим")]
+        [MaxLength(100, ErrorMessage = "Максимальна довжина імені – 100 символів")]
         public string? Name { get; set; }
-        [MaxLength(255)]
-        public List<Product> Product { get; set;}=new List<Product>();
+
+        public List<Product> Products { get; set; } = new List<Product>();
     }
 }
-
